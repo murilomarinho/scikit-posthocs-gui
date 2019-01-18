@@ -1,33 +1,10 @@
-'''
-(C) Copyright 2019 Murilo Marinho
-
-This file is part of scikit-posthocs-gui.
-
-    scikit-posthocs-gui is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    DQ Robotics is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public License
-    along with DQ Robotics.  If not, see <http://www.gnu.org/licenses/>.
-
-Contributors:
-- Murilo M. Marinho (murilo@nml.t.u-tokyo.ac.jp)
-'''
-
-
 import sys
 import os
+
 from PyQt5.QtWidgets import *
+
 import scikit_posthocs as ph
 import ast
-import openpyxl
-import numpy
 import pandas
 
 def calculate():
@@ -37,21 +14,31 @@ def calculate():
     global a
 
     if(a is not None):
+        print(a.__class__)
         ## Get function info
         method = getattr(ph, combobox_posthoc_methods.currentText())
-        arguments = [a]
-        for i in range(1, len(list_of_lineedits)):
-            print(list_of_lineedits[i].text())
-            try:
-                arguments.append(ast.literal_eval(list_of_lineedits[i].text()))
-            except ValueError:
-                arguments.append(list_of_lineedits[i].text())
 
-        print(arguments)
-        result = method(*arguments)
-        print(result)
-        outframe = pandas.DataFrame(result)
-        outframe.to_excel(lineedit_output_file.text())
+        if(combobox_posthoc_methods.currentText()=='posthoc_tukey_hsd'):
+            arguments = [a['value'],a['variable'],ast.literal_eval(list_of_lineedits[2].text())]
+            print(arguments)
+            result = method(*arguments)
+            print(result)
+            outframe = pandas.DataFrame(result)
+            outframe.to_excel(lineedit_output_file.text())
+        else:
+            arguments = [a]
+            for i in range(1, len(list_of_lineedits)):
+                print(list_of_lineedits[i].text())
+                try:
+                    arguments.append(ast.literal_eval(list_of_lineedits[i].text()))
+                except ValueError:
+                    arguments.append(list_of_lineedits[i].text())
+
+            print(arguments)
+            result = method(*arguments)
+            print(result)
+            outframe = pandas.DataFrame(result)
+            outframe.to_excel(lineedit_output_file.text())
 
 def getInputFile():
     global label_input_file
@@ -64,8 +51,10 @@ def getInputFile():
     lineedit_output_file.setText(os.path.splitext(fileName)[0]+'_output.xlsx')
 
     pandas_a = pandas.read_excel(fileName)
-    a = pandas_a.T.values
+    print(pandas_a.melt().dropna())
+    a = pandas_a.melt().dropna()
     print(a)
+
 
 
 def removeAllFromLayout(layout):
@@ -117,18 +106,24 @@ def combobox_posthoc_methods_selection_changed(text):
         layout_labels.addWidget(label)
 
         if(name == 'x' or name == 'g'):
-            lineedit = QLineEdit('NOT IMPLEMENTED YET')
+            lineedit = QLineEdit('Maybe working?')
             lineedit.setEnabled(False)
         elif(name == 'a'):
             if a is None:
-                lineedit = QLineEdit('Not loaded yet')
+                lineedit = QLineEdit('Maybe working?')
                 lineedit.setEnabled(False)
             else:
                 lineedit = QLineEdit('Loaded from file')
                 lineedit.setEnabled(False)
+        elif(name=='val_col'):
+            lineedit = QLineEdit('value')
+            default_counter = default_counter + 1
+        elif(name=='group_col'):
+            lineedit = QLineEdit('variable')
+            default_counter = default_counter + 1
         else:
             lineedit = QLineEdit(str(defaults[default_counter]))
-            default_counter = default_counter+1
+            default_counter = default_counter + 1
 
         list_of_lineedits.append(lineedit)
         layout_values.addWidget(lineedit)
@@ -208,7 +203,7 @@ if __name__ == '__main__':
     w = QWidget()
     w.resize(250, 150)
     w.move(300, 300)
-    w.setWindowTitle('Statistic Electricity (by Murilo)')
+    w.setWindowTitle('Statistic Electricity')
     w.setLayout(layout_main)
 
     combobox_posthoc_methods.currentTextChanged.connect(combobox_posthoc_methods_selection_changed)
@@ -216,3 +211,4 @@ if __name__ == '__main__':
     w.show()
 
     sys.exit(app.exec_())
+
